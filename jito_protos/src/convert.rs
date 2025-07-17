@@ -5,7 +5,7 @@ use std::{
 };
 
 use bincode::serialize;
-use solana_perf::packet::{Packet, PacketBatch, PACKET_DATA_SIZE};
+use solana_perf::packet::{Packet, PacketBatch, PacketRef, PACKET_DATA_SIZE};
 use solana_sdk::{
     packet::{Meta, PacketFlags},
     transaction::VersionedTransaction,
@@ -21,7 +21,7 @@ use crate::{
 
 /// Converts a Solana packet to a protobuf packet
 /// NOTE: the packet.data() function will filter packets marked for discard
-pub fn packet_to_proto_packet(p: &Packet) -> Option<ProtoPacket> {
+pub fn packet_to_proto_packet(p: PacketRef) -> Option<ProtoPacket> {
     Some(ProtoPacket {
         data: p.data(..)?.to_vec(),
         meta: Some(ProtoMeta {
@@ -33,7 +33,7 @@ pub fn packet_to_proto_packet(p: &Packet) -> Option<ProtoPacket> {
                 forwarded: p.meta().forwarded(),
                 repair: p.meta().repair(),
                 simple_vote_tx: p.meta().is_simple_vote_tx(),
-                tracer_packet: p.meta().is_tracer_packet(),
+                tracer_packet: p.meta().is_perf_track_packet(),
                 from_staked_node: p.meta().is_from_staked_node(),
             }),
             sender_stake: 0,
@@ -70,7 +70,7 @@ pub fn proto_packet_to_packet(p: &ProtoPacket) -> Packet {
                 packet.meta_mut().flags.insert(PacketFlags::FORWARDED);
             }
             if flags.tracer_packet {
-                packet.meta_mut().flags.insert(PacketFlags::TRACER_PACKET);
+                packet.meta_mut().flags.insert(PacketFlags::PERF_TRACK_PACKET);
             }
             if flags.repair {
                 packet.meta_mut().flags.insert(PacketFlags::REPAIR);
