@@ -146,11 +146,11 @@ async fn main() {
 
 async fn process_commands<T>(args: Args, mut client: SearcherServiceClient<T>)
 where
-    T: tonic::client::GrpcService<tonic::body::BoxBody> + Send + 'static + Clone,
+    T: tonic::client::GrpcService<tonic::body::Body> + Send + 'static + Clone,
     T::Error: Into<StdError>,
     T::ResponseBody: Body<Data = Bytes> + Send + 'static,
     <T::ResponseBody as Body>::Error: Into<StdError> + Send,
-    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::Future: std::marker::Send,
+    <T as tonic::client::GrpcService<tonic::body::Body>>::Future: std::marker::Send,
 {
     match args.command {
         Commands::NextScheduledLeader => {
