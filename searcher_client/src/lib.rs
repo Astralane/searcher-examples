@@ -18,8 +18,8 @@ use jito_protos::{
 };
 use log::{info, warn};
 use solana_client::nonblocking::rpc_client::RpcClient;
+use solana_commitment_config::CommitmentConfig;
 use solana_sdk::{
-    commitment_config::CommitmentConfig,
     signature::{Keypair, Signature},
     transaction::VersionedTransaction,
 };
@@ -217,7 +217,7 @@ where
     // convert them to packets + send over
     let packets: Vec<_> = transactions
         .iter()
-        .map(proto_packet_from_versioned_tx)
+        .map(|tx| proto_packet_from_versioned_tx(tx))
         .collect();
 
     searcher_client
