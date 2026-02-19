@@ -61,16 +61,13 @@ pub type BlockEngineConnectionResult<T> = Result<T, BlockEngineConnectionError>;
 pub async fn get_searcher_client_auth(
     block_engine_url: &str,
     auth_keypair: &Arc<Keypair>,
+    role: Role,
 ) -> BlockEngineConnectionResult<
     SearcherServiceClient<InterceptedService<Channel, ClientInterceptor>>,
 > {
     let auth_channel = create_grpc_channel(block_engine_url).await?;
-    let client_interceptor = ClientInterceptor::new(
-        AuthServiceClient::new(auth_channel),
-        auth_keypair,
-        Role::Searcher,
-    )
-    .await?;
+    let client_interceptor =
+        ClientInterceptor::new(AuthServiceClient::new(auth_channel), auth_keypair, role).await?;
 
     let searcher_channel = create_grpc_channel(block_engine_url).await?;
     let searcher_client =
@@ -93,7 +90,7 @@ pub async fn create_grpc_channel(url: &str) -> BlockEngineConnectionResult<Chann
         let tls_config = tonic::transport::ClientTlsConfig::new()
             .with_webpki_roots()
             .with_native_roots();
-        
+
         endpoint = endpoint.tls_config(tls_config)?;
     }
     Ok(endpoint.connect().await?)
