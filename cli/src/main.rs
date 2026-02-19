@@ -12,19 +12,22 @@ use jito_searcher_client::{
 };
 use log::info;
 use solana_client::nonblocking::rpc_client::RpcClient;
+use solana_commitment_config::CommitmentConfig;
 use solana_sdk::{
-    commitment_config::CommitmentConfig,
     pubkey::Pubkey,
     signature::{read_keypair_file, Signer},
-    system_instruction::transfer,
     transaction::{Transaction, VersionedTransaction},
 };
-use spl_memo::build_memo;
+use solana_system_interface::instruction::transfer;
+use solana_sdk::instruction::Instruction;
 use tokio::time::sleep;
 use tonic::{
     codegen::{Body, Bytes, InterceptedService, StdError},
     transport::Channel,
 };
+
+// SPL Memo Program ID - using constant instead of spl-memo crate to avoid version conflicts with Solana v3.0.0
+const MEMO_PROGRAM_ID: Pubkey = solana_sdk::pubkey!("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -146,11 +149,11 @@ async fn main() {
 
 async fn process_commands<T>(args: Args, mut client: SearcherServiceClient<T>)
 where
-    T: tonic::client::GrpcService<tonic::body::BoxBody> + Send + 'static + Clone,
+    T: tonic::client::GrpcService<tonic::body::Body> + Send + 'static + Clone,
     T::Error: Into<StdError>,
     T::ResponseBody: Body<Data = Bytes> + Send + 'static,
     <T::ResponseBody as Body>::Error: Into<StdError> + Send,
-    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::Future: std::marker::Send,
+    <T as tonic::client::GrpcService<tonic::body::Body>>::Future: std::marker::Send,
 {
     match args.command {
         Commands::NextScheduledLeader => {
@@ -280,7 +283,11 @@ where
                 .map(|i| {
                     VersionedTransaction::from(Transaction::new_signed_with_payer(
                         &[
-                            build_memo(format!("jito bundle {i}: {message}").as_bytes(), &[]),
+                            Instruction::new_with_bytes(
+                                MEMO_PROGRAM_ID,
+                                format!("jito bundle {i}: {message}").as_bytes(),
+                                vec![],
+                            ),
                             transfer(&payer_keypair.pubkey(), &tip_account, lamports),
                         ],
                         Some(&payer_keypair.pubkey()),
