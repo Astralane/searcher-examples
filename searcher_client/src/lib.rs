@@ -11,7 +11,7 @@ use jito_protos::{
         BundleResult, InternalError, SimulationFailure, StateAuctionBidRejected,
         WinningBatchBidRejected,
     },
-    convert::proto_packet_from_versioned_tx,
+    convert::{proto_packet_from_tx_bytes, proto_packet_from_versioned_tx},
     searcher::{
         searcher_service_client::SearcherServiceClient, SendBundleRequest, SendBundleResponse,
     },
@@ -215,6 +215,33 @@ where
     let packets: Vec<_> = transactions
         .iter()
         .map(|tx| proto_packet_from_versioned_tx(tx))
+        .collect();
+
+    searcher_client
+        .send_bundle(SendBundleRequest {
+            bundle: Some(Bundle {
+                header: None,
+                packets,
+            }),
+        })
+        .await
+}
+
+pub async fn send_bundle_bytes_no_wait<T>(
+    transactions: &[bytes::Bytes],
+    searcher_client: &mut SearcherServiceClient<T>,
+) -> Result<Response<SendBundleResponse>, Status>
+where
+    T: tonic::client::GrpcService<tonic::body::Body> + Send + 'static + Clone,
+    T::Error: Into<StdError>,
+    T::ResponseBody: Body<Data = Bytes> + Send + 'static,
+    <T::ResponseBody as Body>::Error: Into<StdError> + Send,
+    <T as tonic::client::GrpcService<tonic::body::Body>>::Future: std::marker::Send,
+{
+    // convert them to packets + send over
+    let packets: Vec<_> = transactions
+        .iter()
+        .map(|tx| proto_packet_from_tx_bytes(tx.clone()))
         .collect();
 
     searcher_client

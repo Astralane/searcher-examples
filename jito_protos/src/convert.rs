@@ -5,47 +5,16 @@ use std::{
 };
 
 use bincode::serialize;
-use solana_perf::packet::{Packet, PacketBatch, PacketRef, PACKET_DATA_SIZE};
+use solana_perf::packet::{Packet, PACKET_DATA_SIZE};
 use solana_packet::{Meta, PacketFlags};
 use solana_sdk::transaction::VersionedTransaction;
 
 use crate::{
     packet::{
         Meta as ProtoMeta, Packet as ProtoPacket, PacketBatch as ProtoPacketBatch,
-        PacketFlags as ProtoPacketFlags,
     },
     shared::Socket,
 };
-
-/// Converts a Solana packet to a protobuf packet
-/// NOTE: the packet.data() function will filter packets marked for discard
-pub fn packet_to_proto_packet(p: PacketRef) -> Option<ProtoPacket> {
-    Some(ProtoPacket {
-        data: p.data(..)?.to_vec(),
-        meta: Some(ProtoMeta {
-            size: p.meta().size as u64,
-            addr: p.meta().addr.to_string(),
-            port: p.meta().port as u32,
-            flags: Some(ProtoPacketFlags {
-                discard: p.meta().discard(),
-                forwarded: p.meta().forwarded(),
-                repair: p.meta().repair(),
-                simple_vote_tx: p.meta().is_simple_vote_tx(),
-                tracer_packet: p.meta().is_perf_track_packet(),
-                from_staked_node: p.meta().is_from_staked_node(),
-            }),
-            sender_stake: 0,
-        }),
-    })
-}
-
-pub fn packet_batches_to_proto_packets(
-    batches: &[PacketBatch],
-) -> impl Iterator<Item = ProtoPacket> + '_ {
-    batches
-        .iter()
-        .flat_map(|b| b.iter().filter_map(packet_to_proto_packet))
-}
 
 /// converts from a protobuf packet to packet
 pub fn proto_packet_to_packet(p: &ProtoPacket) -> Packet {
@@ -118,7 +87,7 @@ pub fn proto_packet_from_versioned_tx(tx: &VersionedTransaction) -> ProtoPacket 
     let data = serialize(tx).expect("serializes");
     let size = data.len() as u64;
     ProtoPacket {
-        data,
+        data: data.into(),
         meta: Some(ProtoMeta {
             size,
             addr: "".to_string(),
@@ -126,6 +95,20 @@ pub fn proto_packet_from_versioned_tx(tx: &VersionedTransaction) -> ProtoPacket 
             flags: None,
             sender_stake: 0,
         }),
+    }
+}
+
+pub fn proto_packet_from_tx_bytes(data: bytes::Bytes) -> ProtoPacket {
+    let size = data.len() as u64;
+    ProtoPacket {
+        data,
+        meta: Some(ProtoMeta {
+            size,
+            addr: "".to_string(),
+            port: 0,
+            flags: None,
+            sender_stake: 0,
+        })
     }
 }
 
@@ -140,14 +123,27 @@ impl TryFrom<&Socket> for SocketAddr {
 
 #[cfg(test)]
 mod tests {
-    use solana_perf::test_tx::test_tx;
-    use solana_sdk::transaction::VersionedTransaction;
+    use solana_sdk::{
+        hash::Hash,
+        message::Message,
+        signature::{Keypair, Signer},
+        transaction::{Transaction, VersionedTransaction},
+    };
 
     use crate::convert::{proto_packet_from_versioned_tx, versioned_tx_from_packet};
 
+    // Build the transaction from solana-sdk's own types rather than
+    // `solana_perf::test_tx`, which pulls an older `solana-transaction` version
+    // whose `Transaction` doesn't convert into solana-sdk's `VersionedTransaction`.
+    fn test_tx() -> VersionedTransaction {
+        let keypair = Keypair::new();
+        let message = Message::new(&[], Some(&keypair.pubkey()));
+        VersionedTransaction::from(Transaction::new(&[&keypair], message, Hash::default()))
+    }
+
     #[test]
     fn test_proto_to_packet() {
-        let tx_before = VersionedTransaction::from(test_tx());
+        let tx_before = test_tx();
         let tx_after = versioned_tx_from_packet(&proto_packet_from_versioned_tx(&tx_before))
             .expect("tx_after");
 

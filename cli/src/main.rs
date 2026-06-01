@@ -132,6 +132,7 @@ async fn main() {
                 get_searcher_client_auth(
                     args.block_engine_url.as_str(),
                     &auth_keypair,
+                    jito_protos::auth::Role::Searcher,
                 ).await
                 .expect("Failed to get searcher client with auth. Note: If you don't pass in the auth keypair, we can attempt to connect to the no auth endpoint");
             process_commands(args, searcher_client_auth).await
