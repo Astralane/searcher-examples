@@ -13,12 +13,12 @@ jito-searcher-client = { path = "searcher_client" }
 
 # agave-repo crates are released in lockstep and cross-pin with `=`, so the whole
 # agave set is pinned to the same version.
-agave-transaction-view = "=4.1.0-beta.1"
-solana-perf = { version = "=4.1.0-beta.1", features = ["dev-context-only-utils"] }
-solana-svm-transaction = "=4.1.0-beta.1"
+agave-transaction-view = "=4.2.1"
+solana-perf = { version = "=4.2.1", features = ["dev-context-only-utils"] }
+solana-svm-transaction = "=4.2.0"
 solana-packet = "4.1.0"
 solana-program = "4.0.0"
-solana-client = "4.1.0-beta.1"
+solana-client = "=4.2.1"
 
 # External crates
 bincode = "1.3.3"
@@ -33,15 +33,15 @@ solana-bincode = "3.1.0"
 solana-borsh = "3.0.2"
 
 solana-commitment-config = "3.1.1"
-solana-metrics = "4.1.0-beta.1"
+solana-metrics = "=4.2.1"
 solana-nonce = "3.1.0"
 
-solana-rpc-client-api = "4.1.0-beta.1"
+solana-rpc-client-api = "=4.2.1"
 solana-sdk = "4.0.1"
 solana-system-interface = { version = "3.1.0", features = ["bincode"] }
-solana-tpu-client-next = "4.1.0-beta.1"
-solana-transaction-status = "4.1.0-beta.1"
-solana-transaction-status-client-types = "4.1.0-beta.1"
+solana-tpu-client-next = "=4.2.1"
+solana-transaction-status = "=4.2.1"
+solana-transaction-status-client-types = "=4.2.1"
 thiserror = "1.0.40"
 tokio = "1"
 tonic = "~0.14.2"
